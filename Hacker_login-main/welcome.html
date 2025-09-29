@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Welcome — Hacker Domain</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; font-family: "Courier New", monospace; background: #000; overflow: hidden; }
+
+    /* background hacker image dimmed */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: url('hacker.jpg') center/cover no-repeat;
+      opacity: 0.18;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* canvas for binary flow */
+    canvas#binary {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      display: block;
+    }
+
+    /* main panel */
+    .panel {
+      position: relative;
+      z-index: 3;
+      width: min(900px, 92%);
+      margin: 4vh auto;
+      padding: 28px;
+      background: rgba(0,0,0,0.55);
+      border: 1px solid rgba(0,255,0,0.12);
+      border-radius: 10px;
+      color: #bfffbf;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+    }
+
+    .title {
+      text-align: center;
+      color: #0f0;
+      font-size: 2.2rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      text-shadow: 0 0 12px rgba(0,255,0,0.12);
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #cfefd2;
+      margin-bottom: 18px;
+    }
+
+    /* input area */
+    .controls {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 18px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .controls input[type="text"] {
+      min-width: 420px;
+      max-width: 90%;
+      padding: 10px 12px;
+      background: #111;
+      border: 1px solid rgba(0,255,0,0.08);
+      color: #dfffd9;
+      font-size: 16px;
+      border-radius: 6px;
+    }
+
+    .controls button {
+      padding: 10px 16px;
+      background: #0f0;
+      color: #000;
+      font-weight: 700;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      box-shadow: 0 8px 18px rgba(0,255,0,0.06);
+    }
+
+    .controls .note {
+      font-size: 0.9rem;
+      color: #bfffbf;
+      opacity: 0.9;
+      text-align: center;
+    }
+
+    /* fake console */
+    #console {
+      width: 100%;
+      height: 44vh;
+      background: rgba(0,0,0,0.85);
+      color: #9efe9e;
+      border-radius: 6px;
+      padding: 12px;
+      overflow: auto;
+      font-family: monospace;
+      font-size: 13px;
+      line-height: 1.35;
+      border: 1px solid rgba(0,255,0,0.06);
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.6);
+    }
+
+    /* small controls row when running */
+    .running-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      color: #bfffbf;
+      font-size: 0.95rem;
+    }
+
+    /* final overlay shown after time */
+    .final-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: none; /* shown later */
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.85);
+      text-align: center;
+      padding: 24px;
+    }
+
+    .final-card {
+      background: rgba(0,0,0,0.72);
+      border: 2px solid rgba(0,255,0,0.12);
+      padding: 22px;
+      border-radius: 10px;
+      color: #e7ffe7;
+      width: min(820px, 92%);
+    }
+
+    .final-card img {
+      max-width: 220px;
+      display: block;
+      margin: 10px auto 6px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .final-card h2 {
+      margin: 6px 0 8px;
+      color: #0f0;
+      letter-spacing: 1px;
+    }
+
+    .final-card p {
+      color: #cfefd2;
+      font-size: 1.05rem;
+    }
+
+    .final-card button {
+      margin-top: 12px;
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: none;
+      background: #0f0;
+      color: #000;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    @media (max-width: 640px) {
+      .title { font-size: 1.4rem; }
+      #console { height: 48vh; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="binary"></canvas>
+
+  <div class="panel">
+    <div class="title">Welcome to Hacker Domain</div>
+    <div class="subtitle">Access granted. Enter the matrix of ones and zeros.</div>
+
+    <div class="controls">
+      <input id="binaryInput" type="text" placeholder="Type only 0 and 1 (e.g. 010101)"/>
+      <button id="startBtn">Start Hack</button>
+      <div class="note">Only 0 & 1 allowed. Press ESC to pause binary background.</div>
+    </div>
+
+    <div id="console" aria-live="polite">
+// Console ready — enter binary and press "Start Hack"
+    </div>
+
+    <div class="running-info" id="runningInfo" style="display:none;">
+      <div>⏱️ Running fake hack sequence...</div>
+      <div id="timeLeft">Time left: <span id="secondsLeft">0</span>s</div>
+    </div>
+  </div>
+
+  <!-- final overlay -->
+  <div class="final-overlay" id="finalOverlay">
+    <div class="final-card">
+      <!-- Replace fun.jpg with your own local image if you want -->
+      <img src="fun.jpg" alt="Fun" onerror="this.style.display='none'">
+      <h2>Don't be serious — it's just a fun...</h2>
+      <p>Thanks for playing. This was a harmless fake "hacker" simulation.</p>
+      <button id="closeFinal">Close & Restart</button>
+    </div>
+  </div>
+
+  <script>
+    /**************** Binary canvas background (Matrix style) ****************/
+    (function(){
+      const canvas = document.getElementById('binary');
+      const ctx = canvas.getContext('2d');
+
+      let fontSize = 16;
+      let columns = [];
+      let colCount = 0;
+      let paused = false;
+      const chars = ['0','1'];
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        fontSize = Math.max(12, Math.floor(window.innerWidth / 100)); // responsive sizing
+        colCount = Math.floor(canvas.width / fontSize);
+        columns = new Array(colCount).fill(0).map(() => Math.floor(Math.random() * 20));
+      }
+
+      window.addEventListener('resize', resize);
+      resize();
+
+      function draw() {
+        if (paused) {
+          requestAnimationFrame(draw);
+          return;
+        }
+
+        // fade the canvas slightly for trailing effect
+        ctx.fillStyle = 'rgba(0,0,0,0.08)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.font = fontSize + 'px monospace';
+
+        for (let i = 0; i < colCount; i++) {
+          const x = i * fontSize;
+          const y = columns[i] * fontSize;
+
+          // pick 0 or 1
+          const ch = chars[Math.random() < 0.5 ? 0 : 1];
+          // brightness gradation for head vs trail
+          ctx.fillStyle = 'rgba(160,255,160,0.95)';
+          ctx.fillText(ch, x, y);
+
+          // small trailing char
+          if (Math.random() > 0.85) {
+            ctx.fillStyle = 'rgba(100,200,120,0.28)';
+            ctx.fillText(chars[Math.random() < 0.5 ? 0 : 1], x, y - fontSize);
+          }
+
+          columns[i] += 1;
+
+          if (y > canvas.height + Math.random() * 1000) {
+            columns[i] = 0;
+          }
+        }
+
+        requestAnimationFrame(draw);
+      }
+
+      requestAnimationFrame(draw);
+
+      // Pause/resume with Escape
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          paused = !paused;
+        }
+      });
+    })();
+
+    /**************** Fake hacker console logic ****************/
+    (function(){
+      const input = document.getElementById('binaryInput');
+      const startBtn = document.getElementById('startBtn');
+      const consoleEl = document.getElementById('console');
+      const runningInfo = document.getElementById('runningInfo');
+      const secondsLeftSpan = document.getElementById('secondsLeft');
+      const finalOverlay = document.getElementById('finalOverlay');
+      const closeFinal = document.getElementById('closeFinal');
+
+      let streamInterval = null;
+      let totalRunSeconds = 10; // how long fake hack runs before showing final overlay
+      let remaining = totalRunSeconds;
+
+      // Helper: append line to console and auto-scroll
+      function appendLine(text) {
+        const line = document.createElement('div');
+        line.textContent = text;
+        consoleEl.appendChild(line);
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+      }
+
+      // Generate fake "hack" line using random pieces and user's binary as seed
+      function makeFakeLine(seedBinary) {
+        // small pool of tokens
+        const tokens = [
+          "AUTH", "SSH", "CONNECT", "PIPE", "INJECT", "ALLOC", "BYTES",
+          "TRACE", "PROXY", "OVERRIDE", "ROOT", "ACCESS", "CRACK",
+          "SEED", "HASH", "SHELL", "EXEC", "LOADING", "COMPILING"
+        ];
+        // pick random token and create a pseudo hex/binary string influenced by seed
+        const t = tokens[Math.floor(Math.random() * tokens.length)];
+        let rnd = Math.random();
+        // use the seed to bias the "address"
+        let addr = "";
+        if (seedBinary && seedBinary.length > 0) {
+          // create an address by taking parts of the seed and converting to hex-ish string
+          const slice = seedBinary.slice(0, 12).padEnd(12, '0');
+          for (let i = 0; i < slice.length; i += 3) {
+            const part = slice.substr(i, 3);
+            const val = parseInt(part, 2) & 0xF;
+            addr += (val.toString(16)).toUpperCase();
+          }
+        } else {
+          // random address
+          for (let i = 0; i < 6; i++) addr += Math.floor(Math.random() * 16).toString(16).toUpperCase();
+        }
+        // combine
+        return `${t} [0x${addr}] ... ${Math.floor(Math.random()*10000)} ops`;
+      }
+
+      // Validate input — only 0 and 1 allowed
+      input.addEventListener('input', function(e) {
+        this.value = this.value.replace(/[^01]/g, ''); // remove non-binary chars
+      });
+
+      // Start the fake hack stream
+      function startHack() {
+        const userBinary = input.value.trim();
+        if (userBinary.length === 0) {
+          alert("Please enter some 0s and 1s first.");
+          input.focus();
+          return;
+        }
+
+        // clear console and show running UI
+        consoleEl.innerHTML = '';
+        appendLine(">> Access granted. Initializing fake sequence...");
+        runningInfo.style.display = 'flex';
+        remaining = totalRunSeconds;
+        secondsLeftSpan.textContent = remaining;
+
+        // stream fake code lines rapidly
+        streamInterval = setInterval(function() {
+          const linesThisTick = 1 + Math.floor(Math.random() * 3); // 1-3 lines per tick
+          for (let i = 0; i < linesThisTick; i++) {
+            appendLine(makeFakeLine(userBinary));
+          }
+        }, 120); // every 120ms new lines
+
+        // countdown and after time show final overlay
+        const countdown = setInterval(function() {
+          remaining--;
+          secondsLeftSpan.textContent = remaining;
+          if (remaining <= 0) {
+            clearInterval(countdown);
+            stopHackAndShowFinal();
+          }
+        }, 1000);
+
+        // disable input/button while running
+        input.disabled = true;
+        startBtn.disabled = true;
+        startBtn.textContent = "Hacking...";
+      }
+
+      function stopHackAndShowFinal() {
+        // stop streaming
+        if (streamInterval) {
+          clearInterval(streamInterval);
+          streamInterval = null;
+        }
+        runningInfo.style.display = 'none';
+        startBtn.textContent = "Start Hack";
+        input.disabled = false;
+        startBtn.disabled = false;
+
+        // Show final overlay (image + message)
+        finalOverlay.style.display = 'flex';
+      }
+
+      startBtn.addEventListener('click', function() {
+        startHack();
+      });
+
+      // Also allow Enter key in input to start
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          startHack();
+        }
+      });
+
+      // Close final overlay, reset console
+      closeFinal.addEventListener('click', function() {
+        finalOverlay.style.display = 'none';
+        consoleEl.innerHTML = "// Console ready — enter binary and press \"Start Hack\"";
+        input.value = '';
+        input.focus();
+      });
+    })();
+  </script>
+</body>
+</html>
